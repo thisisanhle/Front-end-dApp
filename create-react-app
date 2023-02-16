@@ -1,0 +1,134 @@
+develop a front-end dApp that allows a user to connect their wallet with Metamask. Here are the steps you can follow:
+
+Design the UI:
+Based on the requirements, you need to design a user interface that allows the user to connect their wallet with Metamask and display the wallet address and information on the screen.
+You can use tools like Figma or Sketch to create wireframes and mockups for the UI design.
+Make sure that the design is visually appealing and user-friendly, with clear instructions on how to connect the wallet.
+Build the UI:
+Once the UI design is ready, you can start building the user interface using web technologies like HTML, CSS, and JavaScript.
+You can use a front-end framework like React or Vue.js to simplify the development process.
+You need to include a button or link on the UI that allows the user to connect their wallet with Metamask.
+When the user clicks the connect button, the dApp should prompt the user to connect their wallet through Metamask and retrieve the wallet address.
+You can use the Web3.js library to interact with the Metamask wallet and fetch information from the blockchain.
+Fetch the Wallet Information:
+Once the user has connected their wallet, you need to fetch information from the blockchain and display it on the screen.
+You can use a blockchain explorer API like Etherscan or Infura to query the blockchain and retrieve the required information.
+You can display the wallet address, account balance, transaction history, and other relevant information in a visually appealing way.
+Test and Deploy:
+Once the dApp is built, you need to test it thoroughly to make sure that it works as expected and handles all edge cases and errors.
+You can use tools like Mocha or Jest to write and run automated tests to check the functionality of the dApp.
+Once the dApp passes all tests, you can deploy it to a hosting platform like Netlify or Heroku and make it accessible to users.
+Remember that the primary goal of the assignment is to meet the minimum requirements and produce a functional UI. However, you can go beyond the wireframes provided and add additional features and functionalities to enhance the user experience.
+
+how to implement the required features and functionality for the front-end dApp using React.js. Here are the steps you can follow:
+
+Set up the project:
+Use create-react-app to generate a new React.js project.
+Install any necessary dependencies using npm or yarn.
+Define the environment variables and service provider keys in a .env file.
+Design and build the UI:
+Use the provided wireframes as a guideline and design a visually appealing and user-friendly UI.
+Use a styling/component library like Material-UI or Bootstrap to simplify the design process.
+Implement the required tabs (Ethereum, Tokens, NFTs) and make sure they are fully functional.
+Use the Web3.js library to interact with the Metamask wallet and fetch information from the blockchain.
+Allow the user to toggle between MainNet and TestNet mode, and provide the ability to logout/disconnect from the dApp.
+Implement a dark mode/light mode toggle (optional).
+Fetch and display token/coin info:
+Use a blockchain explorer API like Etherscan or Infura to query the blockchain and retrieve the required token/coin information.
+Fetch and resolve the up-to-date token/coin info including price, name, ticker, symbol, and logo.
+Display the token/coin information in a visually appealing and user-friendly way.
+Test and deploy the dApp:
+Thoroughly test the dApp to make sure it works as expected and handles all edge cases and errors.
+Use tools like Jest or Enzyme to write and run automated tests to check the functionality of the dApp.
+Deploy the dApp to a hosting platform like Netlify or Heroku and make it accessible to users.
+Remember to avoid hard-coding wallet addresses and not to rely on browser storage to persist data between wallet connections. You can become familiar with sending and receiving funds to and from decentralized wallets, and test your work in mainnet mode by using the wallet addresses found on Etherscan. You should be able to get wallet information without a paid tier from a service provider, and ERC20 tokens can be omitted from the testnet mode.
+
+You can use any of the provided front-end frameworks (NextJS, RemixJS, or Create React App) based on your preference, but make sure to communicate your choice and explain any system-wide decisions around designs and frameworks in your submission.
+
+import React, { useState, useEffect } from 'react';
+import Web3 from 'web3';
+import erc20Abi from './abis/erc20.json';
+import erc721Abi from './abis/erc721.json';
+
+const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+function App() {
+  const [web3, setWeb3] = useState(null);
+  const [address, setAddress] = useState(null);
+  const [ethBalance, setEthBalance] = useState(null);
+  const [erc20Tokens, setErc20Tokens] = useState([]);
+  const [erc721Tokens, setErc721Tokens] = useState([]);
+
+  useEffect(() => {
+    const initWeb3 = async () => {
+      // Check if MetaMask is installed
+      if (window.ethereum) {
+        const web3 = new Web3(window.ethereum);
+        await window.ethereum.enable();
+        setWeb3(web3);
+        setAddress(window.ethereum.selectedAddress);
+      }
+    };
+
+    initWeb3();
+  }, []);
+
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (web3 && address) {
+        // Fetch ETH balance
+        const ethBalance = await web3.eth.getBalance(address);
+        setEthBalance(ethBalance);
+
+        // Fetch ERC20 token balances
+        const erc20Tokens = [
+          { name: 'Token 1', symbol: 'TKN1', address: '0x123abc', decimals: 18 },
+          { name: 'Token 2', symbol: 'TKN2', address: '0x456def', decimals: 18 },
+          // ... add more tokens as needed
+        ];
+
+        const promises = erc20Tokens.map(async (token) => {
+          const contract = new web3.eth.Contract(erc20Abi, token.address);
+          const balance = await contract.methods.balanceOf(address).call();
+          const formattedBalance = balance / 10 ** token.decimals;
+          return {
+            name: token.name,
+            symbol: token.symbol,
+            balance: formattedBalance
+          };
+        });
+
+        const tokenBalances = await Promise.all(promises);
+        setErc20Tokens(tokenBalances);
+
+        // Fetch ERC721 tokens
+        const erc721Tokens = [
+          { name: 'NFT 1', address: '0x789ghi' },
+          { name: 'NFT 2', address: '0xabcjkl' },
+          // ... add more tokens as needed
+        ];
+
+        const nftPromises = erc721Tokens.map(async (token) => {
+          const contract = new web3.eth.Contract(erc721Abi, token.address);
+          const tokenIds = await contract.methods.balanceOf(address).call();
+          const promises = tokenIds.map(async (tokenId) => {
+            const tokenUri = await contract.methods.tokenURI(tokenId).call();
+            const response = await fetch(tokenUri);
+            const data = await response.json();
+            return {
+              name: token.name,
+              tokenId: tokenId,
+              image: data.image
+            };
+          });
+          const tokens = await Promise.all(promises);
+          return tokens;
+        });
+
+        const nftTokens = await Promise.all(nftPromises);
+        const flattenedTokens = [].concat(...nftTokens);
+        setErc721Tokens(flattenedTokens);
+      }
+    };
+
+   
